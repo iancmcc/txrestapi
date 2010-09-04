@@ -1,8 +1,14 @@
+import txrestapi
+__package__="txrestapi"
 import re
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.web.server import Request
+from twisted.web.server import Request, Site
+from twisted.web.client import getPage
+from twisted.web.error import NoResource
 from twisted.trial import unittest
 from .service import APIResource, Resource
+from .methods import GET, PUT
 
 class FakeChannel(object):
     transport = None
@@ -24,7 +30,7 @@ class APIResourceTest(unittest.TestCase):
         self.assertEqual(r._registry.keys(), ['GET'])
         self.assertEqual(r._registry['GET'], [(compiled, None)])
 
-    def test_regex_matching(self):
+    def test_method_matching(self):
         r = APIResource()
         r.register('GET', 'regex', 1)
         r.register('PUT', 'regex', 2)
@@ -101,4 +107,62 @@ class APIResourceTest(unittest.TestCase):
         result = r.getChild('regex', req)
         # Make sure the first one got it
         self.assert_('cb1' in result)
+
+    def test_no_resource(self):
+        r = APIResource()
+        r.register('GET', '^/(?P<a>[^/]*)/a/(?P<b>[^/]*)$', None)
+        req = Request(FakeChannel(), None)
+        req.method = 'GET'
+        req.path = '/definitely/not/a/match'
+        result = r.getChild('regex', req)
+        self.assert_(isinstance(result, NoResource))
+
+
+class _R(Resource):
+    _result = ''
+    def __init__(self, result):
+        Resource.__init__(self)
+        self._result = result
+    isLeaf = True
+    def render(self, request):
+        return self._result
+
+class TestAPI(APIResource):
+
+    @GET('^/(?P<a>test[^/]*)/?')
+    def on_test_get(self, request, a):
+        return _R('GET %s' % a)
+
+    @PUT('^/(?P<a>test[^/]*)/?')
+    def on_test_put(self, request, a):
+        return _R('PUT %s' % a)
+
+
+class DecoratorsTest(unittest.TestCase):
+    def _listen(self, site):
+        return reactor.listenTCP(0, site, interface="127.0.0.1")
+
+    def setUp(self):
+        r = TestAPI()
+        site = Site(r, timeout=None)
+        self.port = self._listen(site)
+        self.portno = self.port.getHost().port
+
+    def tearDown(self):
+        return self.port.stopListening()
+
+    def getURL(self, path):
+        return "http://127.0.0.1:%d/%s" % (self.portno, path)
+
+    @inlineCallbacks
+    def test_get(self):
+        url = self.getURL('test_thing/')
+        result = yield getPage(url, method='GET')
+        self.assertEqual(result, 'GET test_thing')
+
+    @inlineCallbacks
+    def test_put(self):
+        url = self.getURL('test_thing/')
+        result = yield getPage(url, method='PUT')
+        self.assertEqual(result, 'PUT test_thing')
 
