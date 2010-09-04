@@ -24,12 +24,12 @@ class APIResource(Resource):
         l.append((re.compile(regex), callback))
 
     def getChild(self, name, request):
-        r = Resource.getChild(self, name, request)
-        if isinstance(r, NoResource):
+        r = self.children.get(name, None)
+        if r is None:
             # Go into the thing
             callback, args = self._get_callback(request)
             if callback is None:
-                return r
+                return NoResource()
             else:
                 return callback(request, **args)
         else:

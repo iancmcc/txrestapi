@@ -13,7 +13,8 @@ class APIResourceTest(unittest.TestCase):
         r = APIResource()
         a = Resource()
         r.putChild('a', a)
-        a_ = r.getChild('a', None)
+        req = Request(FakeChannel(), None)
+        a_ = r.getChild('a', req)
         self.assertEqual(a, a_)
 
     def test_registry(self):
@@ -60,3 +61,44 @@ class APIResourceTest(unittest.TestCase):
         req.path = 'regex'
         result = r.getChild('regex', req)
         self.assertEqual(result, marker)
+
+    def test_longerpath(self):
+        marker = object()
+        r = APIResource()
+        def cb(request):
+            return marker
+        r.register('GET', '/regex/a/b/c', cb)
+        req = Request(FakeChannel(), None)
+        req.method = 'GET'
+        req.path = '/regex/a/b/c'
+        result = r.getChild('regex', req)
+        self.assertEqual(result, marker)
+
+    def test_args(self):
+        r = APIResource()
+        def cb(request, **kwargs):
+            return kwargs
+        r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)/c', cb)
+        req = Request(FakeChannel(), None)
+        req.method = 'GET'
+        req.path = '/regex/a/b/c'
+        result = r.getChild('regex', req)
+        self.assertEqual(sorted(result.keys()), ['a', 'b'])
+
+    def test_order(self):
+        r = APIResource()
+        def cb1(request, **kwargs):
+            kwargs.update({'cb1':True})
+            return kwargs
+        def cb(request, **kwargs):
+            return kwargs
+        # Register two regexes that will match
+        r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)/c', cb1)
+        r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)', cb)
+        req = Request(FakeChannel(), None)
+        req.method = 'GET'
+        req.path = '/regex/a/b/c'
+        result = r.getChild('regex', req)
+        # Make sure the first one got it
+        self.assert_('cb1' in result)
+
