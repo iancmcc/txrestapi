@@ -118,24 +118,16 @@ class APIResourceTest(unittest.TestCase):
         self.assert_(isinstance(result, NoResource))
 
 
-class _R(Resource):
-    _result = ''
-    def __init__(self, result):
-        Resource.__init__(self)
-        self._result = result
-    isLeaf = True
-    def render(self, request):
-        return self._result
 
 class TestAPI(APIResource):
 
     @GET('^/(?P<a>test[^/]*)/?')
     def on_test_get(self, request, a):
-        return _R('GET %s' % a)
+        return 'GET %s' % a
 
     @PUT('^/(?P<a>test[^/]*)/?')
     def on_test_put(self, request, a):
-        return _R('PUT %s' % a)
+        return 'PUT %s' % a
 
 
 class DecoratorsTest(unittest.TestCase):
