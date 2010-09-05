@@ -44,8 +44,8 @@ def method_factory_factory(method):
         return decorator
     return factory
 
+ALL    = method_factory_factory('ALL')
 GET    = method_factory_factory('GET')
 POST   = method_factory_factory('POST')
 PUT    = method_factory_factory('PUT')
 DELETE = method_factory_factory('DELETE')
-

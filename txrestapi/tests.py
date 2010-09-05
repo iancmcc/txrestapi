@@ -3,11 +3,12 @@ __package__="txrestapi"
 import re
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+from twisted.web.resource import Resource
 from twisted.web.server import Request, Site
 from twisted.web.client import getPage
 from twisted.web.error import NoResource
 from twisted.trial import unittest
-from .service import APIResource, Resource
+from .resource import APIResource
 from .methods import GET, PUT
 
 class FakeChannel(object):
@@ -118,6 +119,11 @@ class APIResourceTest(unittest.TestCase):
         self.assert_(isinstance(result, NoResource))
 
 
+class TestResource(Resource):
+    isLeaf = True
+    def render(self, request):
+        return 'aresource'
+
 
 class TestAPI(APIResource):
 
@@ -128,6 +134,10 @@ class TestAPI(APIResource):
     @PUT('^/(?P<a>test[^/]*)/?')
     def on_test_put(self, request, a):
         return 'PUT %s' % a
+
+    @GET('^/gettest')
+    def on_gettest(self, request):
+        return TestResource()
 
 
 class DecoratorsTest(unittest.TestCase):
@@ -157,4 +167,10 @@ class DecoratorsTest(unittest.TestCase):
         url = self.getURL('test_thing/')
         result = yield getPage(url, method='PUT')
         self.assertEqual(result, 'PUT test_thing')
+
+    @inlineCallbacks
+    def test_resource_wrapper(self):
+        url = self.getURL('gettest')
+        result = yield getPage(url, method='GET')
+        self.assertEqual(result, 'aresource')
 
