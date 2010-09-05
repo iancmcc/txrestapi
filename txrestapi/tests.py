@@ -120,6 +120,7 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', '^path', get_cb)
         r.register('ALL', '^path', all_cb)
         r.register('PUT', '^path', put_cb)
+        # Test that the ALL registration picks it up before the PUT one
         for method in ('GET', 'PUT', 'ALL'):
             req = getRequest(method, 'path')
             result = r.getChild('path', req)
