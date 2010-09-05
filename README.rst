@@ -2,7 +2,7 @@
 Introduction
 ============
 
-`txrestapi` makes it easier to create Twisted REST API services. Normally, one
+``txrestapi`` makes it easier to create Twisted REST API services. Normally, one
 would create `Resource` subclasses defining each segment of a path; this is
 cubersome to implement and results in output that isn't very readable.
 `txrestapi` provides an `APIResource` class allowing complex mapping of path to
