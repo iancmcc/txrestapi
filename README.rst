@@ -1,8 +1,20 @@
-This is a test::
+============
+Introduction
+============
 
-    >>> print 'hi'
-    hi
-    >>> print 'yayayay'
-    yayayay
+`txrestapi` makes it easier to create Twisted REST API services. Normally, one
+would create `Resource` subclasses defining each segment of a path; this is
+cubersome to implement and results in output that isn't very readable.
+`txrestapi` provides an `APIResource` class allowing complex mapping of path to
+callback (a la Django) with a readable decorator.
 
-This is not a test.
+=============
+API Resources
+=============
+
+First, some setup::
+
+    >>> from txrestapi.resource import APIResource
+    >>> api = APIResource()
+
+An `APIResource` is a thing.
