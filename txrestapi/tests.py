@@ -1,6 +1,7 @@
 import txrestapi
 __package__="txrestapi"
 import re
+import os.path
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.resource import Resource
@@ -9,7 +10,7 @@ from twisted.web.client import getPage
 from twisted.web.error import NoResource
 from twisted.trial import unittest
 from .resource import APIResource
-from .methods import GET, PUT, ALL
+from .methods import GET, PUT
 
 class FakeChannel(object):
     transport = None
@@ -181,4 +182,13 @@ class DecoratorsTest(unittest.TestCase):
         url = self.getURL('gettest')
         result = yield getPage(url, method='GET')
         self.assertEqual(result, 'aresource')
+
+
+def test_suite():
+    import unittest as ut
+    suite = unittest.TestSuite()
+    suite.addTest(ut.makeSuite(DecoratorsTest))
+    suite.addTest(ut.makeSuite(APIResourceTest))
+    suite.addTest(unittest.doctest.DocFileSuite(os.path.join('..', 'README.rst')))
+    return suite
 
