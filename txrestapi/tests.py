@@ -9,10 +9,16 @@ from twisted.web.client import getPage
 from twisted.web.error import NoResource
 from twisted.trial import unittest
 from .resource import APIResource
-from .methods import GET, PUT
+from .methods import GET, PUT, ALL
 
 class FakeChannel(object):
     transport = None
+
+def getRequest(method, url):
+    req = Request(FakeChannel(), None)
+    req.method = method
+    req.path = url
+    return req
 
 class APIResourceTest(unittest.TestCase):
 
@@ -36,9 +42,7 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', 'regex', 1)
         r.register('PUT', 'regex', 2)
         r.register('GET', 'another', 3)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = 'regex'
+        req = getRequest('GET', 'regex')
         result = r._get_callback(req)
         self.assert_(result)
         self.assertEqual(result[0], 1)
@@ -63,9 +67,7 @@ class APIResourceTest(unittest.TestCase):
             return marker
         r = APIResource()
         r.register('GET', 'regex', cb)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = 'regex'
+        req = getRequest('GET', 'regex')
         result = r.getChild('regex', req)
         self.assertEqual(result, marker)
 
@@ -75,9 +77,7 @@ class APIResourceTest(unittest.TestCase):
         def cb(request):
             return marker
         r.register('GET', '/regex/a/b/c', cb)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = '/regex/a/b/c'
+        req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
         self.assertEqual(result, marker)
 
@@ -86,9 +86,7 @@ class APIResourceTest(unittest.TestCase):
         def cb(request, **kwargs):
             return kwargs
         r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)/c', cb)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = '/regex/a/b/c'
+        req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
         self.assertEqual(sorted(result.keys()), ['a', 'b'])
 
@@ -102,9 +100,7 @@ class APIResourceTest(unittest.TestCase):
         # Register two regexes that will match
         r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)/c', cb1)
         r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)', cb)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = '/regex/a/b/c'
+        req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
         # Make sure the first one got it
         self.assert_('cb1' in result)
@@ -112,11 +108,22 @@ class APIResourceTest(unittest.TestCase):
     def test_no_resource(self):
         r = APIResource()
         r.register('GET', '^/(?P<a>[^/]*)/a/(?P<b>[^/]*)$', None)
-        req = Request(FakeChannel(), None)
-        req.method = 'GET'
-        req.path = '/definitely/not/a/match'
+        req = getRequest('GET', '/definitely/not/a/match')
         result = r.getChild('regex', req)
         self.assert_(isinstance(result, NoResource))
+
+    def test_all(self):
+        r = APIResource()
+        def get_cb(r): return 'GET'
+        def put_cb(r): return 'PUT'
+        def all_cb(r): return 'ALL'
+        r.register('GET', '^path', get_cb)
+        r.register('ALL', '^path', all_cb)
+        r.register('PUT', '^path', put_cb)
+        for method in ('GET', 'PUT', 'ALL'):
+            req = getRequest(method, 'path')
+            result = r.getChild('path', req)
+            self.assertEqual(result, 'ALL' if method=='PUT' else method)
 
 
 class TestResource(Resource):
