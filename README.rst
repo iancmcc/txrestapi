@@ -23,7 +23,8 @@ and a web server to serve it::
     >>> from twisted.internet import reactor
     >>> site = Site(api, timeout=None)
 
-and a function to make it easy for us to make requests::
+and a function to make it easy for us to make requests (only for doctest
+purposes; normally you would of course use ``reactor.listenTCP(site, 8080)``)::
 
     >>> from twisted.web.server import Request
     >>> class FakeChannel(object):
@@ -35,7 +36,8 @@ and a function to make it easy for us to make requests::
     ...     return site.getChildWithDefault(path, req)
 
 We can now register callbacks for paths we care about. We can provide different
-callbacks for different methods::
+callbacks for different methods; they must accept ``request`` as the first
+argument::
 
     >>> def get_callback(request): return 'GET callback'
     >>> api.register('GET', '^/path/to/method', get_callback)
@@ -71,3 +73,29 @@ can use ALL::
     Default callback
     >>> print makeRequest('GET', '/path/to/method')
     GET callback
+
+Let's unregister all references to the default callback so it doesn't interfere
+with later tests (default callbacks should, of course, always be registered
+last, so they don't get called before other callbacks)::
+
+    >>> api.unregister(callback=default_callback)
+
+=============
+URL Arguments
+=============
+
+Since callbacks accept ``request``, they have access to POST data or query
+arguments, but we can also pull arguments out of the URL by using named groups
+in the regular expression (similar to Django). These will be passed into the
+callback as keyword arguments::
+
+    >>> def get_info(request, id):
+    ...     return 'Information for id %s' % id
+    >>> api.register('GET', '/(?P<id>[^/]+)/info$', get_info)
+    >>> print makeRequest('GET', '/someid/info')
+    Information for id someid
+
+Bear in mind all arguments will come in as strings, so code should be
+accordingly defensive.
+
+

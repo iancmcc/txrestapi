@@ -22,6 +22,14 @@ class APIResource(Resource):
     def register(self, method, regex, callback):
         self._registry.append((method, re.compile(regex), callback))
 
+    def unregister(self, method=None, regex=None, callback=None):
+        if regex is not None: regex = re.compile(regex)
+        for m, r, cb in self._registry[:]:
+            if not method or (method and m==method):
+                if not regex or (regex and r==regex):
+                    if not callback or (callback and cb==callback):
+                        self._registry.remove((m, r, cb))
+
     def getChild(self, name, request):
         r = self.children.get(name, None)
         if r is None:
