@@ -135,3 +135,12 @@ one would expect to register a method as the target for two URLs ::
     Setting info for id anid
     >>> print makeRequest('DELETE', '/anid/delete')
     I match any URL
+
+======================
+Callback return values
+======================
+
+You can return Resource objects from a callback if you wish, allowing you to
+have APIs that send you to other kinds of resources, or even other APIs.
+Normally, however, you'll most likely want to return strings, which will be
+wrapped in a Resource object for convenience.
