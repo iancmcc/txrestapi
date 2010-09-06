@@ -33,7 +33,8 @@ purposes; normally you would of course use ``reactor.listenTCP(site, 8080)``)::
     ...     req = Request(FakeChannel(), None)
     ...     req.prepath = req.postpath = None
     ...     req.method = method; req.path = path
-    ...     return site.getChildWithDefault(path, req)
+    ...     resource = site.getChildWithDefault(path, req)
+    ...     return resource.render(req)
 
 We can now register callbacks for paths we care about. We can provide different
 callbacks for different methods; they must accept ``request`` as the first
@@ -98,4 +99,39 @@ callback as keyword arguments::
 Bear in mind all arguments will come in as strings, so code should be
 accordingly defensive.
 
+================
+Decorator syntax
+================
 
+Registration via the ``register()`` method is somewhat awkward, so decorators
+are provided making it much more straightforward. ::
+
+    >>> from txrestapi.methods import GET, POST, PUT, ALL
+    >>> class MyResource(APIResource):
+    ...
+    ...     @GET('^/(?P<id>[^/]+)/info')
+    ...     def get_info(self, request, id):
+    ...         return 'Info for id %s' % id
+    ...
+    ...     @PUT('^/(?P<id>[^/]+)/update')
+    ...     @POST('^/(?P<id>[^/]+)/update')
+    ...     def set_info(self, request, id):
+    ...         return "Setting info for id %s" % id
+    ...
+    ...     @ALL('^/')
+    ...     def default_view(self, request):
+    ...         return "I match any URL"
+
+Again, registrations occur top to bottom, so methods should be written from
+most specific to least. Also notice that one can use the decorator syntax as
+one would expect to register a method as the target for two URLs ::
+
+    >>> site = Site(MyResource(), timeout=None)
+    >>> print makeRequest('GET', '/anid/info')
+    Info for id anid
+    >>> print makeRequest('PUT', '/anid/update')
+    Setting info for id anid
+    >>> print makeRequest('POST', '/anid/update')
+    Setting info for id anid
+    >>> print makeRequest('DELETE', '/anid/delete')
+    I match any URL

@@ -35,8 +35,8 @@ class APIResourceTest(unittest.TestCase):
         compiled = re.compile('regex')
         r = APIResource()
         r.register('GET', 'regex', None)
-        self.assertEqual(r._registry.keys(), ['GET'])
-        self.assertEqual(r._registry['GET'], [(compiled, None)])
+        self.assertEqual([x[0] for x in r._registry], ['GET'])
+        self.assertEqual(r._registry[0], ('GET', compiled, None))
 
     def test_method_matching(self):
         r = APIResource()
@@ -70,7 +70,7 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', 'regex', cb)
         req = getRequest('GET', 'regex')
         result = r.getChild('regex', req)
-        self.assertEqual(result, marker)
+        self.assertEqual(result.render(req), marker)
 
     def test_longerpath(self):
         marker = object()
@@ -80,7 +80,7 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', '/regex/a/b/c', cb)
         req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
-        self.assertEqual(result, marker)
+        self.assertEqual(result.render(req), marker)
 
     def test_args(self):
         r = APIResource()
@@ -89,7 +89,7 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', '/(?P<a>[^/]*)/a/(?P<b>[^/]*)/c', cb)
         req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
-        self.assertEqual(sorted(result.keys()), ['a', 'b'])
+        self.assertEqual(sorted(result.render(req).keys()), ['a', 'b'])
 
     def test_order(self):
         r = APIResource()
@@ -104,7 +104,7 @@ class APIResourceTest(unittest.TestCase):
         req = getRequest('GET', '/regex/a/b/c')
         result = r.getChild('regex', req)
         # Make sure the first one got it
-        self.assert_('cb1' in result)
+        self.assert_('cb1' in result.render(req))
 
     def test_no_resource(self):
         r = APIResource()
@@ -125,7 +125,7 @@ class APIResourceTest(unittest.TestCase):
         for method in ('GET', 'PUT', 'ALL'):
             req = getRequest(method, 'path')
             result = r.getChild('path', req)
-            self.assertEqual(result, 'ALL' if method=='PUT' else method)
+            self.assertEqual(result.render(req), 'ALL' if method=='PUT' else method)
 
 
 class TestResource(Resource):

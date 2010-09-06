@@ -1,26 +1,4 @@
-from functools import wraps
-from twisted.web.resource import Resource
 from zope.interface.advice import addClassAdvisor
-
-class _FakeResource(Resource):
-    _result = ''
-    isLeaf = True
-    def __init__(self, result):
-        Resource.__init__(self)
-        self._result = result
-    def render(self, request):
-        return self._result
-
-
-def maybeResource(f):
-    @wraps(f)
-    def inner(*args, **kwargs):
-        result = f(*args, **kwargs)
-        if not isinstance(result, Resource):
-            result = _FakeResource(result)
-        return result
-    return inner
-
 
 def method_factory_factory(method):
     def factory(regex):
@@ -36,7 +14,7 @@ def method_factory_factory(method):
                         orig = _f[func_name]
                         func = getattr(self, func_name)
                     if func.im_func==orig:
-                        self.register(method, regex, maybeResource(func))
+                        self.register(method, regex, func)
                 return __init__
             cls.__init__ = wrapped(cls.__init__)
             return cls

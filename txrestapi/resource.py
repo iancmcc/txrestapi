@@ -1,7 +1,28 @@
 import re
 from itertools import ifilter
+from functools import wraps
 from twisted.web.resource import Resource
 from twisted.web.error import NoResource
+
+class _FakeResource(Resource):
+    _result = ''
+    isLeaf = True
+    def __init__(self, result):
+        Resource.__init__(self)
+        self._result = result
+    def render(self, request):
+        return self._result
+
+
+def maybeResource(f):
+    @wraps(f)
+    def inner(*args, **kwargs):
+        result = f(*args, **kwargs)
+        if not isinstance(result, Resource):
+            result = _FakeResource(result)
+        return result
+    return inner
+
 
 class APIResource(Resource):
 
@@ -38,6 +59,6 @@ class APIResource(Resource):
             if callback is None:
                 return NoResource()
             else:
-                return callback(request, **args)
+                return maybeResource(callback)(request, **args)
         else:
             return r
