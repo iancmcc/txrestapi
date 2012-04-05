@@ -34,9 +34,11 @@ class APIResource(Resource):
 
     def _get_callback(self, request):
         filterf = lambda t:t[0] in (request.method, 'ALL')
+        path_to_check = getattr(request, '_remaining_path', request.path)
         for m, r, cb in ifilter(filterf, self._registry):
-            result = r.search(request.path)
+            result = r.search(path_to_check)
             if result:
+                request._remaining_path = path_to_check[result.span()[1]:]
                 return cb, result.groupdict()
         return None, None
 

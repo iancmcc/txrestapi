@@ -43,22 +43,23 @@ class APIResourceTest(unittest.TestCase):
         r.register('GET', 'regex', 1)
         r.register('PUT', 'regex', 2)
         r.register('GET', 'another', 3)
+
         req = getRequest('GET', 'regex')
         result = r._get_callback(req)
         self.assert_(result)
         self.assertEqual(result[0], 1)
-        req.method = 'PUT'
-        req.path = 'regex'
+
+        req = getRequest('PUT', 'regex')
         result = r._get_callback(req)
         self.assert_(result)
         self.assertEqual(result[0], 2)
-        req.method = 'GET'
-        req.path = 'another'
+
+        req = getRequest('GET', 'another')
         result = r._get_callback(req)
         self.assert_(result)
         self.assertEqual(result[0], 3)
-        req.method = 'PUT'
-        req.path = 'another'
+
+        req = getRequest('PUT', 'another')
         result = r._get_callback(req)
         self.assertEqual(result, (None, None))
 
@@ -137,15 +138,15 @@ class TestResource(Resource):
 class TestAPI(APIResource):
 
     @GET('^/(?P<a>test[^/]*)/?')
-    def on_test_get(self, request, a):
+    def _on_test_get(self, request, a):
         return 'GET %s' % a
 
     @PUT('^/(?P<a>test[^/]*)/?')
-    def on_test_put(self, request, a):
+    def _on_test_put(self, request, a):
         return 'PUT %s' % a
 
     @GET('^/gettest')
-    def on_gettest(self, request):
+    def _on_gettest(self, request):
         return TestResource()
 
 
