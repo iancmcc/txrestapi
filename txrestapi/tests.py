@@ -4,10 +4,9 @@ import re
 import os.path
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.web.resource import Resource
+from twisted.web.resource import Resource, NoResource
 from twisted.web.server import Request, Site
 from twisted.web.client import getPage
-from twisted.web.error import NoResource
 from twisted.trial import unittest
 from .resource import APIResource
 from .methods import GET, PUT
