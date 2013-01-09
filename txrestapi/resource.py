@@ -1,8 +1,7 @@
 import re
 from itertools import ifilter
 from functools import wraps
-from twisted.web.resource import Resource
-from twisted.web.error import NoResource
+from twisted.web.resource import Resource, NoResource
 
 class _FakeResource(Resource):
     _result = ''
