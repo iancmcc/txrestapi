@@ -24,7 +24,7 @@ and a web server to serve it::
     >>> site = Site(api, timeout=None)
 
 and a function to make it easy for us to make requests (only for doctest
-purposes; normally you would of course use ``reactor.listenTCP(site, 8080)``)::
+purposes; normally you would of course use ``reactor.listenTCP(8080, site)``)::
 
     >>> from twisted.web.server import Request
     >>> class FakeChannel(object):
