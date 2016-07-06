@@ -1,5 +1,7 @@
 import re
-from itertools import ifilter
+from six import PY2, PY3, b, u
+if PY2:
+    from itertools import ifilter as filter
 from functools import wraps
 from twisted.web.resource import Resource, NoResource
 
@@ -27,14 +29,28 @@ class APIResource(Resource):
 
     _registry = None
 
+    def __new__(cls, *args, **kwds):
+        instance = super().__new__(cls, *args, **kwds)
+        instance._registry = []
+        for name in dir(instance):
+            attribute = getattr(instance, name)
+            annotation = getattr(attribute, "__txrestapi__", None)
+            if annotation is not None:
+                method, regex = annotation
+                instance.register(method, regex, attribute)
+        return instance
+
     def __init__(self, *args, **kwargs):
         Resource.__init__(self, *args, **kwargs)
-        self._registry = []
+        if PY2:
+            self._registry = []
 
     def _get_callback(self, request):
-        filterf = lambda t:t[0] in (request.method, 'ALL')
+        filterf = lambda t:t[0] in (request.method, b('ALL'))
         path_to_check = getattr(request, '_remaining_path', request.path)
-        for m, r, cb in ifilter(filterf, self._registry):
+        if PY3:
+            path_to_check = path_to_check.decode("utf-8")
+        for m, r, cb in filter(filterf, self._registry):
             result = r.search(path_to_check)
             if result:
                 request._remaining_path = path_to_check[result.span()[1]:]
@@ -42,7 +58,7 @@ class APIResource(Resource):
         return None, None
 
     def register(self, method, regex, callback):
-        self._registry.append((method, re.compile(regex), callback))
+        self._registry.append((b(method), re.compile(regex), callback))
 
     def unregister(self, method=None, regex=None, callback=None):
         if regex is not None: regex = re.compile(regex)
@@ -53,7 +69,7 @@ class APIResource(Resource):
                         self._registry.remove((m, r, cb))
 
     def getChild(self, name, request):
-        r = self.children.get(name, None)
+        r = self.children.get(u(name), None)
         if r is None:
             # Go into the thing
             callback, args = self._get_callback(request)

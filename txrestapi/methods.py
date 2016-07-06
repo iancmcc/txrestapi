@@ -1,7 +1,8 @@
+from six import PY2
 from zope.interface.advice import addClassAdvisor
 
 def method_factory_factory(method):
-    def factory(regex):
+    def factory_py2(regex):
         _f = {}
         def decorator(f):
             _f[f.__name__] = f
@@ -20,6 +21,16 @@ def method_factory_factory(method):
             return cls
         addClassAdvisor(advisor)
         return decorator
+
+    def factory_py3(regex):
+
+        def decorator(f):
+            f.__txrestapi__ = (method, regex)
+            return f
+
+        return decorator
+
+    factory = factory_py2 if PY2 else factory_py3
     return factory
 
 ALL    = method_factory_factory('ALL')

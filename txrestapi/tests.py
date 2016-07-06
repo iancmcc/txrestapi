@@ -2,6 +2,8 @@ import txrestapi
 __package__="txrestapi"
 import re
 import os.path
+import doctest
+from six import PY2, b
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.web.resource import Resource, NoResource
@@ -16,8 +18,8 @@ class FakeChannel(object):
 
 def getRequest(method, url):
     req = Request(FakeChannel(), None)
-    req.method = method
-    req.path = url
+    req.method = b(method)
+    req.path = b(url)
     return req
 
 class APIResourceTest(unittest.TestCase):
@@ -34,8 +36,8 @@ class APIResourceTest(unittest.TestCase):
         compiled = re.compile('regex')
         r = APIResource()
         r.register('GET', 'regex', None)
-        self.assertEqual([x[0] for x in r._registry], ['GET'])
-        self.assertEqual(r._registry[0], ('GET', compiled, None))
+        self.assertEqual([x[0] for x in r._registry], [b('GET')])
+        self.assertEqual(r._registry[0], (b('GET'), compiled, None))
 
     def test_method_matching(self):
         r = APIResource()
@@ -131,18 +133,18 @@ class APIResourceTest(unittest.TestCase):
 class TestResource(Resource):
     isLeaf = True
     def render(self, request):
-        return 'aresource'
+        return b('aresource')
 
 
 class TestAPI(APIResource):
 
     @GET('^/(?P<a>test[^/]*)/?')
     def _on_test_get(self, request, a):
-        return 'GET %s' % a
+        return b('GET %s' % a)
 
     @PUT('^/(?P<a>test[^/]*)/?')
     def _on_test_put(self, request, a):
-        return 'PUT %s' % a
+        return b('PUT %s' % a)
 
     @GET('^/gettest')
     def _on_gettest(self, request):
@@ -163,25 +165,25 @@ class DecoratorsTest(unittest.TestCase):
         return self.port.stopListening()
 
     def getURL(self, path):
-        return "http://127.0.0.1:%d/%s" % (self.portno, path)
+        return b("http://127.0.0.1:%d/%s" % (self.portno, path))
 
     @inlineCallbacks
     def test_get(self):
         url = self.getURL('test_thing/')
-        result = yield getPage(url, method='GET')
-        self.assertEqual(result, 'GET test_thing')
+        result = yield getPage(url, method=b('GET'))
+        self.assertEqual(result, b('GET test_thing'))
 
     @inlineCallbacks
     def test_put(self):
         url = self.getURL('test_thing/')
-        result = yield getPage(url, method='PUT')
-        self.assertEqual(result, 'PUT test_thing')
+        result = yield getPage(url, method=b('PUT'))
+        self.assertEqual(result, b('PUT test_thing'))
 
     @inlineCallbacks
     def test_resource_wrapper(self):
         url = self.getURL('gettest')
-        result = yield getPage(url, method='GET')
-        self.assertEqual(result, 'aresource')
+        result = yield getPage(url, method=b('GET'))
+        self.assertEqual(result, b('aresource'))
 
 
 def test_suite():
@@ -189,6 +191,6 @@ def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(ut.makeSuite(DecoratorsTest))
     suite.addTest(ut.makeSuite(APIResourceTest))
-    suite.addTest(unittest.doctest.DocFileSuite(os.path.join('..', 'README.rst')))
+    if PY2:
+        suite.addTest(doctest.DocFileSuite(os.path.join('..', 'README.rst')))
     return suite
-
