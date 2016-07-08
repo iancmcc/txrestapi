@@ -48,8 +48,6 @@ class APIResource(Resource):
     def _get_callback(self, request):
         filterf = lambda t:t[0] in (request.method, b('ALL'))
         path_to_check = getattr(request, '_remaining_path', request.path)
-        if PY3:
-            path_to_check = path_to_check.decode("utf-8")
         for m, r, cb in filter(filterf, self._registry):
             result = r.search(path_to_check)
             if result:
@@ -58,7 +56,7 @@ class APIResource(Resource):
         return None, None
 
     def register(self, method, regex, callback):
-        self._registry.append((b(method), re.compile(regex), callback))
+        self._registry.append((method, re.compile(regex), callback))
 
     def unregister(self, method=None, regex=None, callback=None):
         if regex is not None: regex = re.compile(regex)
@@ -69,7 +67,7 @@ class APIResource(Resource):
                         self._registry.remove((m, r, cb))
 
     def getChild(self, name, request):
-        r = self.children.get(u(name), None)
+        r = self.children.get(name, None)
         if r is None:
             # Go into the thing
             callback, args = self._get_callback(request)
