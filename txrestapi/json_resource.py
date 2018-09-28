@@ -3,10 +3,7 @@ import json
 import time
 import six
 
-from six import PY2, PY3, b, u
-from six.moves import filter
-if PY2:
-    from itertools import ifilter as filter
+from six import PY2
 
 from functools import wraps
 
@@ -14,8 +11,6 @@ from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 from twisted.internet.defer import Deferred
 from twisted.python import log as twlog
-
-
 
 
 def _to_json(output_object):
@@ -37,6 +32,10 @@ class _JsonResource(Resource):
         self._executed = executed
 
     def _setHeaders(self, request):
+        """
+        Those headers will allow you to call API methods from web browsers, they require CORS:
+            https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+        """
         request.responseHeaders.addRawHeader(b'content-type', b'application/json')
         request.responseHeaders.addRawHeader(b'Access-Control-Allow-Origin', b'*')
         request.responseHeaders.addRawHeader(b'Access-Control-Allow-Methods', b'GET, POST, PUT, DELETE')
@@ -46,11 +45,16 @@ class _JsonResource(Resource):
 
     def render(self, request):
         self._setHeaders(request)
+        # this will just add one extra field to the response to populate how fast that API call was processed
         self._result['execution'] = '%3.6f' % (time.time() - self._executed)
         return _to_json(self._result)
 
 
 class _DelayedJsonResource(_JsonResource):
+    """
+    If your API method returned `Deferred` object instead of final result
+    we can wait for the result and then return it in API response.
+    """
 
     def _cb(self, result, request):
         self._setHeaders(request)
@@ -84,12 +88,16 @@ def maybeResource(f):
         _executed = time.time()
         try:
             result = f(*args, **kwargs)
+
         except Exception as exc:
             return _JsonResource(dict(status='ERROR', errors=[str(exc), ]), _executed)
+
         if isinstance(result, Deferred):
             return _DelayedJsonResource(result, _executed)
+
         if not isinstance(result, Resource):
             result = _JsonResource(result, _executed)
+
         return result
     return inner
 
@@ -103,8 +111,8 @@ class JsonAPIResource(Resource):
         instance._registry = []
         for name in dir(instance):
             attribute = getattr(instance, name)
-            annotation = getattr(attribute, "__txrestapi__", None)
-            if annotation is not None:
+            annotations = getattr(attribute, "__txrestapi__", [])
+            for annotation in annotations:
                 method, regex = annotation
                 instance.register(method, regex, attribute)
         return instance

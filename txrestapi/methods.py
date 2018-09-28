@@ -25,7 +25,9 @@ def method_factory_factory(method):
     def factory_py3(regex):
 
         def decorator(f):
-            f.__txrestapi__ = (method, regex)
+            current_methods = getattr(f, '__txrestapi__', [])
+            current_methods.append((method, regex, ))
+            f.__txrestapi__ = current_methods
             return f
 
         return decorator
